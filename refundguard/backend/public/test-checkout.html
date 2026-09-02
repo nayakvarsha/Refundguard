@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RefundGuard — Razorpay Test Mode Checkout</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="bg-[#f0f5ff] text-[#0b192c] min-h-screen flex items-center justify-center p-6 font-sans">
+
+  <div class="max-w-md w-full bg-white border border-slate-200/80 rounded-3xl p-8 shadow-2xl space-y-6">
+    <div class="flex items-center space-x-3 border-b border-slate-100 pb-4">
+      <div class="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/20">
+        🛡️
+      </div>
+      <div>
+        <h1 class="text-lg font-black text-slate-900">Razorpay Test Checkout</h1>
+        <p class="text-xs text-slate-500 font-medium">RefundGuard Real-Time Ingestion Sandbox</p>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+        <div class="flex justify-between text-xs text-slate-600 font-medium">
+          <span>Item: Sandbox Test Order</span>
+          <span class="font-extrabold text-emerald-600">₹500.00</span>
+        </div>
+        <div class="text-[11px] text-slate-500 font-mono">Test Card: 4111 1111 1111 1111</div>
+      </div>
+
+      <button
+        id="payBtn"
+        onclick="createOrderAndPay()"
+        class="w-full py-3.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-md shadow-blue-600/20 transition flex items-center justify-center space-x-2 cursor-pointer"
+      >
+        <span>💳 Create Order & Pay (₹500)</span>
+      </button>
+
+      <button
+        id="duplicateBtn"
+        disabled
+        onclick="triggerDuplicateRefund()"
+        class="w-full py-3.5 px-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 font-extrabold text-sm opacity-50 cursor-not-allowed transition flex items-center justify-center space-x-2"
+      >
+        <span>⚡ Trigger Duplicate Refund Attack (₹500 x 2)</span>
+      </button>
+    </div>
+
+    <div id="status" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-600 space-y-1">
+      <div>Status: Ready for test payment</div>
+    </div>
+  </div>
+
+  <script>
+    let currentPaymentId = null;
+    let currentOrderId = null;
+
+    async function createOrderAndPay() {
+      const statusDiv = document.getElementById("status");
+      statusDiv.innerHTML = "<div class='text-blue-600 font-bold'>Creating Razorpay Order...</div>";
+
+      try {
+        const res = await fetch("/api/live/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: 50000 }) // ₹500.00
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          statusDiv.innerHTML = `<div class="text-rose-600 font-bold">Error: ${data.message || data.error}</div>`;
+          return;
+        }
+
+        const options = {
+          key: data.key_id,
+          amount: data.order.amount,
+          currency: data.order.currency,
+          name: "RefundGuard Merchant",
+          description: "Razorpay Test Transaction",
+          order_id: data.order.id,
+          handler: function (response) {
+            currentPaymentId = response.razorpay_payment_id;
+            currentOrderId = response.razorpay_order_id;
+
+            statusDiv.innerHTML = `
+              <div class="text-emerald-700 font-bold">✓ Payment Captured!</div>
+              <div>Payment ID: ${currentPaymentId}</div>
+              <div>Order ID: ${currentOrderId}</div>
+            `;
+
+            const dupBtn = document.getElementById("duplicateBtn");
+            dupBtn.disabled = false;
+            dupBtn.classList.remove("opacity-50", "cursor-not-allowed", "bg-rose-50", "text-rose-700");
+            dupBtn.classList.add("bg-rose-600", "hover:bg-rose-700", "text-white", "shadow-md", "cursor-pointer");
+          },
+          prefill: {
+            name: "Test Merchant",
+            email: "test@refundguard.io",
+            contact: "9999999999"
+          },
+          theme: { color: "#2563eb" }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+
+      } catch (err) {
+        statusDiv.innerHTML = `<div class="text-rose-600 font-bold">Failed: ${err.message}</div>`;
+      }
+    }
+
+    async function triggerDuplicateRefund() {
+      if (!currentPaymentId) return;
+      const statusDiv = document.getElementById("status");
+      statusDiv.innerHTML = "<div class='text-blue-600 font-bold'>Triggering back-to-back duplicate refunds...</div>";
+
+      try {
+        const res = await fetch("/api/live/trigger-duplicate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId: currentPaymentId, orderId: currentOrderId, amount: 500 })
+        });
+
+        const data = await res.json();
+        statusDiv.innerHTML = `
+          <div class="text-rose-600 font-bold">🚨 DUPLICATE REFUND ATTACK INTERCEPTED!</div>
+          <div>Incident ID: ${data.incident.id}</div>
+          <div>Exposure: ₹${data.incident.exposureAmount}</div>
+          <div class="text-emerald-700 font-bold mt-1">Check Live Detection tab on Dashboard!</div>
+        `;
+      } catch (err) {
+        statusDiv.innerHTML = `<div class="text-rose-600 font-bold">Failed: ${err.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
