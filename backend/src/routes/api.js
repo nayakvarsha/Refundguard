@@ -69,179 +69,189 @@ function ensureRun() {
 
 // POST /api/auth/login - Shared Unified Login API
 router.post("/auth/login", async (req, res) => {
-  const { username, password, role = "COMPANY" } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: "Username and password are required." });
-  }
-
-  // Lockout Protection
-  const lockout = checkLockout(username);
-  if (lockout.isLocked) {
-    addLoginLog({
-      actor: username,
-      email: req.ip || "N/A",
-      role,
-      result: "FAILED_ATTEMPT",
-      details: `Account locked. ${lockout.secondsLeft}s remaining.`,
-    });
-    return res.status(429).json({
-      error: `Account locked due to 5 consecutive failed attempts. Try again in ${lockout.secondsLeft} seconds.`,
-    });
-  }
-
-  let user = null;
-
-  if (role === "ADMIN") {
-    user = findUserByUsernameOrEmail("admin") || {
-      id: "USR-ADMIN-001",
-      username: "admin",
-      email: "admin@refundguard.io",
-      role: "ADMIN",
-    };
-
-    const isValidAdmin = await verifyUserPassword(user, password);
-    if (!isValidAdmin) {
-      const record = recordFailedAttempt(username);
-      addLoginLog({
-        actor: `ADMIN (${username})`,
-        email: req.ip || "N/A",
-        role: "ADMIN",
-        result: "FAILED_ATTEMPT",
-        details: "Invalid administrator password entered.",
-      });
-
-      return res.status(401).json({
-        error: "Invalid administrator password.",
-        attemptsLeft: Math.max(0, 5 - record.count),
-      });
+  try {
+    const { username, password, role = "COMPANY" } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username and password are required." });
     }
 
-    user = {
-      id: `USR-ADMIN-${username.toUpperCase().slice(0, 8)}`,
-      username,
-      email: `${username}@refundguard.io`,
-      role: "ADMIN",
-      companyId: null,
-      lastLoginAt: new Date().toISOString(),
-    };
-  } else {
-    user = findUserByUsernameOrEmail(username);
-
-    if (!user || user.role !== "COMPANY") {
-      const record = recordFailedAttempt(username);
+    // Lockout Protection
+    const lockout = checkLockout(username);
+    if (lockout.isLocked) {
       addLoginLog({
         actor: username,
         email: req.ip || "N/A",
-        role: "COMPANY",
+        role,
         result: "FAILED_ATTEMPT",
-        details: "Customer account not found.",
+        details: `Account locked. ${lockout.secondsLeft}s remaining.`,
       });
-
-      return res.status(401).json({
-        error: "Invalid customer credentials.",
-        attemptsLeft: Math.max(0, 5 - record.count),
+      return res.status(429).json({
+        error: `Account locked due to 5 consecutive failed attempts. Try again in ${lockout.secondsLeft} seconds.`,
       });
     }
 
-    const isValid = await verifyUserPassword(user, password);
-    if (!isValid) {
-      const record = recordFailedAttempt(username);
-      addLoginLog({
-        actor: user.username || user.email,
-        email: user.email,
-        role: "COMPANY",
-        result: "FAILED_ATTEMPT",
-        details: "Invalid password entered.",
-      });
+    let user = null;
 
-      return res.status(401).json({
-        error: "Invalid customer credentials.",
-        attemptsLeft: Math.max(0, 5 - record.count),
-      });
+    if (role === "ADMIN") {
+      user = findUserByUsernameOrEmail("admin") || {
+        id: "USR-ADMIN-001",
+        username: "admin",
+        email: "admin@refundguard.io",
+        role: "ADMIN",
+      };
+
+      const isValidAdmin = await verifyUserPassword(user, password);
+      if (!isValidAdmin) {
+        const record = recordFailedAttempt(username);
+        addLoginLog({
+          actor: `ADMIN (${username})`,
+          email: req.ip || "N/A",
+          role: "ADMIN",
+          result: "FAILED_ATTEMPT",
+          details: "Invalid administrator password entered.",
+        });
+
+        return res.status(401).json({
+          error: "Invalid administrator password.",
+          attemptsLeft: Math.max(0, 5 - record.count),
+        });
+      }
+
+      user = {
+        id: `USR-ADMIN-${username.toUpperCase().slice(0, 8)}`,
+        username,
+        email: `${username}@refundguard.io`,
+        role: "ADMIN",
+        companyId: null,
+        lastLoginAt: new Date().toISOString(),
+      };
+    } else {
+      user = findUserByUsernameOrEmail(username);
+
+      if (!user || user.role !== "COMPANY") {
+        const record = recordFailedAttempt(username);
+        addLoginLog({
+          actor: username,
+          email: req.ip || "N/A",
+          role: "COMPANY",
+          result: "FAILED_ATTEMPT",
+          details: "Customer account not found.",
+        });
+
+        return res.status(401).json({
+          error: "Invalid customer credentials.",
+          attemptsLeft: Math.max(0, 5 - record.count),
+        });
+      }
+
+      const isValid = await verifyUserPassword(user, password);
+      if (!isValid) {
+        const record = recordFailedAttempt(username);
+        addLoginLog({
+          actor: user.username || user.email,
+          email: user.email,
+          role: "COMPANY",
+          result: "FAILED_ATTEMPT",
+          details: "Invalid password entered.",
+        });
+
+        return res.status(401).json({
+          error: "Invalid customer credentials.",
+          attemptsLeft: Math.max(0, 5 - record.count),
+        });
+      }
     }
-  }
 
-  // Successful Login
-  clearFailedAttempts(username);
-  if (user.companyId) {
-    updateLastLogin(user.id);
-  }
+    // Successful Login
+    clearFailedAttempts(username);
+    if (user.companyId) {
+      updateLastLogin(user.id);
+    }
 
-  const token = `sess_${user.role.toLowerCase()}_${uuid().slice(0, 12)}`;
-  const session = {
-    userId: user.id,
-    username: user.username,
-    role: user.role,
-    companyId: user.companyId,
-    createdAt: new Date().toISOString(),
-  };
-  activeSessions.set(token, session);
-
-  let company = null;
-  if (user.companyId) {
-    company = getCompanyById(user.companyId);
-  }
-
-  addLoginLog({
-    actor: user.role === "ADMIN" ? `SUPER_ADMIN (${user.username})` : (company ? company.name : user.username),
-    email: user.email,
-    role: user.role,
-    result: "SUCCESS",
-    details: `${user.role} logged in successfully as "${user.username}".`,
-  });
-
-  res.json({
-    ok: true,
-    token,
-    role: user.role,
-    user: {
-      id: user.id,
+    const token = `sess_${user.role.toLowerCase()}_${uuid().slice(0, 12)}`;
+    const session = {
+      userId: user.id,
       username: user.username,
-      email: user.email,
       role: user.role,
       companyId: user.companyId,
-      lastLoginAt: user.lastLoginAt,
-    },
-    company,
-  });
+      createdAt: new Date().toISOString(),
+    };
+    activeSessions.set(token, session);
+
+    let company = null;
+    if (user.companyId) {
+      company = getCompanyById(user.companyId);
+    }
+
+    addLoginLog({
+      actor: user.role === "ADMIN" ? `SUPER_ADMIN (${user.username})` : (company ? company.name : user.username),
+      email: user.email,
+      role: user.role,
+      result: "SUCCESS",
+      details: `${user.role} logged in successfully as "${user.username}".`,
+    });
+
+    res.json({
+      ok: true,
+      token,
+      role: user.role,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        lastLoginAt: user.lastLoginAt,
+      },
+      company,
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: `Authentication failed: ${err.message || 'Server error'}` });
+  }
 });
 
 // POST /api/auth/signup - Customer Signup Route
 router.post("/auth/signup", async (req, res) => {
-  const { name, email, username, password } = req.body;
-  if (!name || !email || !username || !password) {
-    return res.status(400).json({ error: "Missing required signup details (Company Name, Email, Username, Password)." });
+  try {
+    const { name, email, username, password } = req.body;
+    if (!name || !email || !username || !password) {
+      return res.status(400).json({ error: "Missing required signup details (Company Name, Email, Username, Password)." });
+    }
+
+    const existing = findUserByUsernameOrEmail(username) || findUserByUsernameOrEmail(email);
+    if (existing) {
+      return res.status(400).json({ error: "Username or email is already registered." });
+    }
+
+    const { company, user } = await createCompany({ name, email, username, password });
+    const conn = getConnection(company.id);
+
+    addLoginLog({
+      actor: company.name,
+      email: company.email,
+      role: "COMPANY",
+      result: "SUCCESS",
+      details: `Customer self-serve signup completed. Username: ${user.username}`,
+    });
+
+    res.json({
+      ok: true,
+      company: {
+        ...company,
+        connectionStatus: conn ? conn.status : "DISCONNECTED",
+        webhookUrl: conn ? conn.webhookUrl : `${process.env.PUBLIC_URL || 'http://localhost:4000'}/api/webhooks/company/${company.id}`,
+      },
+      user: {
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ error: `Signup failed: ${err.message || 'Server error'}` });
   }
-
-  const existing = findUserByUsernameOrEmail(username) || findUserByUsernameOrEmail(email);
-  if (existing) {
-    return res.status(400).json({ error: "Username or email is already registered." });
-  }
-
-  const { company, user } = await createCompany({ name, email, username, password });
-  const conn = getConnection(company.id);
-
-  addLoginLog({
-    actor: company.name,
-    email: company.email,
-    role: "COMPANY",
-    result: "SUCCESS",
-    details: `Customer self-serve signup completed. Username: ${user.username}`,
-  });
-
-  res.json({
-    ok: true,
-    company: {
-      ...company,
-      connectionStatus: conn ? conn.status : "DISCONNECTED",
-      webhookUrl: conn ? conn.webhookUrl : `${process.env.PUBLIC_URL || 'http://localhost:4000'}/api/webhooks/company/${company.id}`,
-    },
-    user: {
-      username: user.username,
-      email: user.email,
-      role: user.role,
-    },
-  });
 });
 
 // POST /api/auth/forgot-password - Customer Forgot Password Code Request

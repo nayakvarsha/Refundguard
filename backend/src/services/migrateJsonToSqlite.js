@@ -201,6 +201,11 @@ function createInMemoryDbFallback() {
 }
 
 function initAndMigrateDb() {
+  if (isVercel) {
+    console.log("Vercel environment detected: using in-memory store fallback.");
+    return createInMemoryDbFallback();
+  }
+
   let Database;
   try {
     Database = require("better-sqlite3");
@@ -209,21 +214,9 @@ function initAndMigrateDb() {
     return createInMemoryDbFallback();
   }
 
-  if (isVercel && !fs.existsSync(sqliteDbPath) && fs.existsSync(defaultDbPath)) {
-    try {
-      fs.copyFileSync(defaultDbPath, sqliteDbPath);
-    } catch (e) {
-      console.warn("Could not copy sqlite seed file to /tmp:", e);
-    }
-  }
-
   try {
     const db = new Database(sqliteDbPath);
-    if (isVercel) {
-      db.pragma("journal_mode = DELETE");
-    } else {
-      db.pragma("journal_mode = WAL");
-    }
+    db.pragma("journal_mode = WAL");
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS companies (
