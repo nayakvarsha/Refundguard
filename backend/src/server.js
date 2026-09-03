@@ -8,7 +8,10 @@ const liveRouter = require("./routes/live");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 
 // Express json parser with rawBody preservation for Razorpay X-Razorpay-Signature HMAC verification
 app.use(
