@@ -8,7 +8,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 // Ensure environment variables from backend/.env are loaded cleanly
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env") });

@@ -1,9 +1,18 @@
 {
-  "name": "refundguard-workspace",
+  "name": "refundguard",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd backend && npm install && cd ../frontend && npm install && npm run build",
     "start": "cd backend && npm start"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "razorpay": "^2.9.8",
+    "uuid": "^14.0.2"
   }
 }
