@@ -42,7 +42,7 @@ function shuffle(arr, rng) {
   return arr;
 }
 
-function generate(seed = 42) {
+function generateInMemoryDataset(seed = 42) {
   const rng = makeRng(seed);
   const categories = shuffle(buildCategoryList(), rng);
 
@@ -240,18 +240,23 @@ function generate(seed = 42) {
     labels.push({ companyId, orderId, category });
   }
 
-  fs.mkdirSync(OUT_DIR, { recursive: true });
-  fs.writeFileSync(path.join(OUT_DIR, "orders.json"), JSON.stringify(orders));
-  fs.writeFileSync(path.join(OUT_DIR, "payments.json"), JSON.stringify(payments));
-  fs.writeFileSync(path.join(OUT_DIR, "refunds.json"), JSON.stringify(refunds));
-  fs.writeFileSync(path.join(OUT_DIR, "ledger.json"), JSON.stringify(ledger));
-  fs.writeFileSync(path.join(OUT_DIR, "labels.json"), JSON.stringify(labels));
+  return { orders, payments, refunds, ledger, labels };
+}
 
-  console.log(`Generated ${orders.length} orders, ${payments.length} payments, ${refunds.length} refunds`);
+function generate(seed = 42) {
+  const data = generateInMemoryDataset(seed);
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  fs.writeFileSync(path.join(OUT_DIR, "orders.json"), JSON.stringify(data.orders));
+  fs.writeFileSync(path.join(OUT_DIR, "payments.json"), JSON.stringify(data.payments));
+  fs.writeFileSync(path.join(OUT_DIR, "refunds.json"), JSON.stringify(data.refunds));
+  fs.writeFileSync(path.join(OUT_DIR, "ledger.json"), JSON.stringify(data.ledger));
+  fs.writeFileSync(path.join(OUT_DIR, "labels.json"), JSON.stringify(data.labels));
+
+  console.log(`Generated ${data.orders.length} orders, ${data.payments.length} payments, ${data.refunds.length} refunds`);
 }
 
 if (require.main === module) {
   generate();
 }
 
-module.exports = { generate, COUNTS };
+module.exports = { generate, generateInMemoryDataset, COUNTS };

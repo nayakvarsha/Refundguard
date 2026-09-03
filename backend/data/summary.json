@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-09-03T20:25:22.781Z",
+  "recordsAnalyzed": 10000,
+  "incidentsFound": 1000,
+  "rawExceptionsFound": 1576,
+  "severityCounts": {
+    "CRITICAL": 53,
+    "HIGH": 590,
+    "MEDIUM": 284,
+    "LOW": 73
+  },
+  "typeCounts": {
+    "OVER_REFUND": 322,
+    "DUPLICATE_REFUND": 254,
+    "TIMING_RACE": 450,
+    "UNMATCHED_REFUND": 200,
+    "RECONCILIATION_MISMATCH": 200,
+    "STATE_MISMATCH": 150
+  },
+  "moneyAtRisk": {
+    "totalExposure": 43902040,
+    "prevented": 13973340,
+    "alreadyOccurred": 29928700
+  },
+  "benchmark": {
+    "recordsAnalyzed": 10000,
+    "anomalousRecords": 1000,
+    "normalRecords": 9000,
+    "confusionMatrix": {
+      "tp": 1000,
+      "fp": 0,
+      "tn": 9000,
+      "fn": 0,
+      "explanation": "Evaluated dynamically by validating exact ground-truth violation types against engine incident detections."
+    },
+    "metrics": {
+      "detected": 1000,
+      "missed": 0,
+      "falsePositives": 0,
+      "recallRate": "100.0%",
+      "precisionRate": "100.0%",
+      "f1Score": "1.00"
+    },
+    "recallByCategory": {
+      "duplicate": {
+        "type": "DUPLICATE_REFUND",
+        "count": 250,
+        "detected": 250,
+        "recallPct": "100.0%",
+        "fp": 0
+      },
+      "overRefund": {
+        "type": "OVER_REFUND",
+        "count": 200,
+        "detected": 200,
+        "recallPct": "100.0%",
+        "fp": 0
+      },
+      "unmatched": {
+        "type": "UNMATCHED_REFUND",
+        "count": 200,
+        "detected": 200,
+        "recallPct": "100.0%",
+        "fp": 0
+      },
+      "stateMismatch": {
+        "type": "STATE_MISMATCH",
+        "count": 150,
+        "detected": 150,
+        "recallPct": "100.0%",
+        "fp": 0
+      },
+      "timingRace": {
+        "type": "TIMING_RACE",
+        "count": 200,
+        "detected": 200,
+        "recallPct": "100.0%",
+        "fp": 0
+      }
+    }
+  }
+}

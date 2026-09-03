@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { generateInMemoryDataset } = require("../data/generateDataset");
 
 const CATEGORY_TO_TYPE = {
   duplicate: "DUPLICATE_REFUND",
@@ -9,16 +10,29 @@ const CATEGORY_TO_TYPE = {
   timingRace: "TIMING_RACE",
 };
 
+let inMemoryLabelsCache = null;
+
+function getLabels() {
+  const labelsPath = path.join(__dirname, "..", "..", "data", "labels.json");
+  if (fs.existsSync(labelsPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(labelsPath, "utf-8"));
+    } catch (e) {}
+  }
+  if (!inMemoryLabelsCache) {
+    inMemoryLabelsCache = generateInMemoryDataset().labels;
+  }
+  return inMemoryLabelsCache;
+}
+
 /**
  * Dynamically scores engine incidents against synthetic ground-truth labels.json.
  * Category Validation: Strictly checks if the engine identified the exact
  * ground-truth violation type for the given orderId (Directive 3!).
  */
 function scoreBenchmark(incidents) {
-  const labelsPath = path.join(__dirname, "..", "..", "data", "labels.json");
-  if (!fs.existsSync(labelsPath)) return null;
-
-  const labels = JSON.parse(fs.readFileSync(labelsPath, "utf-8"));
+  const labels = getLabels();
+  if (!labels) return null;
 
   // Build map of orderId -> Set(detectedViolationTypes)
   const detectedTypesByOrderId = new Map();

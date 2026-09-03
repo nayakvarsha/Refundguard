@@ -8,14 +8,33 @@
 
 const fs = require("fs");
 const path = require("path");
+const { generateInMemoryDataset } = require("../data/generateDataset");
 
 const DATA_DIR = path.join(__dirname, "..", "..", "data");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 
-function readJson(file) {
-  const fullPath = path.join(DATA_DIR, file);
-  if (!fs.existsSync(fullPath)) return [];
-  return JSON.parse(fs.readFileSync(fullPath, "utf-8"));
+// In-Memory cache for serverless environments (e.g. Vercel)
+let inMemoryDatasetCache = null;
+
+function getDemoDataset() {
+  const ordersPath = path.join(DATA_DIR, "orders.json");
+  if (fs.existsSync(ordersPath)) {
+    try {
+      return {
+        orders: JSON.parse(fs.readFileSync(ordersPath, "utf-8")),
+        payments: JSON.parse(fs.readFileSync(path.join(DATA_DIR, "payments.json"), "utf-8")),
+        refunds: JSON.parse(fs.readFileSync(path.join(DATA_DIR, "refunds.json"), "utf-8")),
+        ledger: JSON.parse(fs.readFileSync(path.join(DATA_DIR, "ledger.json"), "utf-8")),
+      };
+    } catch (err) {
+      console.warn("Could not read disk JSON dataset, using in-memory generator:", err);
+    }
+  }
+
+  if (!inMemoryDatasetCache) {
+    inMemoryDatasetCache = generateInMemoryDataset();
+  }
+  return inMemoryDatasetCache;
 }
 
 /**
@@ -59,36 +78,42 @@ function loadData(companyId = null, sourceType = "DEMO") {
       ledgerStatus: "CAPTURED",
     }));
   } else {
-    // Default DEMO benchmark corpus
-    orders = readJson("orders.json");
-    payments = readJson("payments.json");
-    refunds = readJson("refunds.json");
-    ledger = readJson("ledger.json");
+    const demoData = getDemoDataset();
+    orders = demoData.orders;
+    payments = demoData.payments;
+    refunds = demoData.refunds;
+    ledger = demoData.ledger;
 
     if (companyId) {
       orders = orders.filter((o) => o.companyId === companyId);
-      payments = payments.filter((p) => p.companyId === companyId);
-      refunds = refunds.filter((r) => r.companyId === companyId);
-      ledger = ledger.filter((l) => l.companyId === companyId);
+      const orderIds = new Set(orders.map((o) => o.orderId));
+      payments = payments.filter((p) => p.companyId === companyId || orderIds.has(p.orderId));
+      refunds = refunds.filter((r) => r.companyId === companyId || orderIds.has(r.orderId));
+      ledger = ledger.filter((l) => l.companyId === companyId || orderIds.has(l.orderId));
     }
   }
 
-  const ordersById = new Map(orders.map((o) => [o.orderId, o]));
-  const paymentsById = new Map(payments.map((p) => [p.paymentId, p]));
-  const ledgerByOrderId = new Map(ledger.map((l) => [l.orderId, l]));
+  // Pre-index by ID for O(1) checks
+  const ordersById = new Map();
+  orders.forEach((o) => ordersById.set(o.orderId, o));
+
+  const paymentsById = new Map();
+  const paymentsByOrderId = new Map();
+  payments.forEach((p) => {
+    paymentsById.set(p.paymentId, p);
+    paymentsByOrderId.set(p.orderId, p);
+  });
+
+  const ledgerByOrderId = new Map();
+  ledger.forEach((l) => ledgerByOrderId.set(l.orderId, l));
 
   const refundsByPaymentId = new Map();
-  for (const r of refunds) {
+  refunds.forEach((r) => {
     if (!refundsByPaymentId.has(r.paymentId)) {
       refundsByPaymentId.set(r.paymentId, []);
     }
     refundsByPaymentId.get(r.paymentId).push(r);
-  }
-
-  const paymentsByOrderId = new Map();
-  for (const p of payments) {
-    paymentsByOrderId.set(p.orderId, p);
-  }
+  });
 
   return {
     orders,
@@ -97,9 +122,9 @@ function loadData(companyId = null, sourceType = "DEMO") {
     ledger,
     ordersById,
     paymentsById,
+    paymentsByOrderId,
     ledgerByOrderId,
     refundsByPaymentId,
-    paymentsByOrderId,
   };
 }
 
