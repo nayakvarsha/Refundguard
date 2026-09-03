@@ -1,3 +1,3 @@
-const app = require("../refundguard/backend/src/server.js");
+const app = require("../backend/src/server.js");
 
 module.exports = app;

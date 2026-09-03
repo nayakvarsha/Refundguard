@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "cd refundguard/frontend && npm install && npm run build",
-  "outputDirectory": "refundguard/frontend/dist",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     {
       "source": "/api/(.*)",

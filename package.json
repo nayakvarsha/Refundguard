@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "cd refundguard/frontend && npm install && npm run build",
-    "start": "cd refundguard/backend && npm start"
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd backend && npm start"
   }
 }
