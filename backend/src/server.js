@@ -22,9 +22,11 @@ app.use(
 // Serve public static files (e.g. test-checkout.html)
 app.use(express.static(path.join(__dirname, "..", "public")));
 
-// API routes
+// API routes (support both /api/* and stripped /* rewrites on Vercel)
 app.use("/api/live", liveRouter);
 app.use("/api", apiRouter);
+app.use("/live", liveRouter);
+app.use("/", apiRouter);
 
 // Serve built React frontend static files from frontend/dist
 const frontendDist = path.join(__dirname, "..", "..", "frontend", "dist");
