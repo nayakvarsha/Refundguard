@@ -37,7 +37,7 @@ export default function CompanyConnectionModal({ isOpen, onClose, company, onSav
 
   if (!isOpen || !company) return null;
 
-  const webhookUrl = `http://localhost:4000/api/webhooks/company/${company.id}`;
+  const webhookUrl = `${window.location.origin}/api/webhooks/company/${company.id}`;
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(webhookUrl);

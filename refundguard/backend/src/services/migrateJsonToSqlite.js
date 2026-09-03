@@ -2,9 +2,19 @@ const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-const sqliteDbPath = path.join(__dirname, "..", "..", "data", "refundguard.sqlite");
+const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const defaultDbPath = path.join(__dirname, "..", "..", "data", "refundguard.sqlite");
+const sqliteDbPath = isVercel ? path.join("/tmp", "refundguard.sqlite") : defaultDbPath;
 
 function initAndMigrateDb() {
+  if (isVercel && !fs.existsSync(sqliteDbPath) && fs.existsSync(defaultDbPath)) {
+    try {
+      fs.copyFileSync(defaultDbPath, sqliteDbPath);
+    } catch (e) {
+      console.warn("Could not copy sqlite seed file to /tmp, creating new DB:", e);
+    }
+  }
+
   const db = new Database(sqliteDbPath);
 
   // Enable WAL mode for high performance

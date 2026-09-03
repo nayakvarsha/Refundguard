@@ -69,30 +69,34 @@ export default function App() {
 
   // Initial load & health polling filtered by current company
   const loadData = async (comp = currentCompany) => {
-    if (!comp || !comp.id) {
-      setSummary(null);
-      setIsRefreshing(false);
-      return;
-    }
     setIsRefreshing(true);
     try {
       const health = await fetchHealth();
       setIsConnected(Boolean(health.backendConnected));
 
-      const sumRes = await fetch(`/api/summary?companyId=${comp.id}`, {
+      const targetCompId = comp?.id || 'COMP-FLIPKART';
+      const sumRes = await fetch(`/api/summary?companyId=${targetCompId}`, {
         headers: sessionToken ? { 'x-session-token': sessionToken } : {},
       });
       const sumData = await sumRes.json();
 
-      if (!sumRes.ok) {
-        throw new Error(sumData.error || 'Failed to load summary');
+      if (sumRes.ok && sumData) {
+        setSummary(sumData);
+      } else {
+        const fallbackRes = await fetch('/api/summary');
+        const fallbackData = await fallbackRes.json();
+        setSummary(fallbackData);
       }
-
-      setSummary(sumData);
     } catch (err) {
       console.error('API connection failed:', err);
       setIsConnected(false);
-      setSummary(null);
+      try {
+        const fallbackRes = await fetch('/api/summary');
+        const fallbackData = await fallbackRes.json();
+        setSummary(fallbackData);
+      } catch (fErr) {
+        setSummary(null);
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -100,9 +104,7 @@ export default function App() {
 
   useEffect(() => {
     loadCompanies();
-    if (currentCompany) {
-      loadData(currentCompany);
-    }
+    loadData(currentCompany);
 
     const timer = setInterval(() => {
       fetchHealth()

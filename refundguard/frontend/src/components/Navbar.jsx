@@ -110,11 +110,11 @@ export default function Navbar({
           {/* 1. Log In Button (Restyled to match Active Blue Tab!) */}
           <button
             onClick={onOpenUnifiedLoginModal}
-            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-extrabold transition flex items-center space-x-1.5 shadow-md shadow-purple-600/30 cursor-pointer"
-            title="Log in as Administrator"
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold transition flex items-center space-x-1.5 shadow-md shadow-blue-600/30 cursor-pointer"
+            title="Log in or switch account"
           >
             <Lock className="w-3.5 h-3.5 text-white" />
-            <span>Admin Login</span>
+            <span>Log In</span>
           </button>
 
           {/* 2. Refresh Button */}

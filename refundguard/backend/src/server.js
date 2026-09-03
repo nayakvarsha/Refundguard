@@ -35,6 +35,10 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(frontendDist, "index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log(`RefundGuard unified application running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`RefundGuard unified application running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

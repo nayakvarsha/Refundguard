@@ -732,28 +732,35 @@ function getEnrichedSummary(rawSummary, companyId) {
 router.get("/summary", (req, res) => {
   const companyId = req.query.companyId;
   const sourceType = req.query.sourceType || "DEMO";
-  if (!companyId) return res.status(400).json({ error: "Missing companyId parameter" });
-  if (!verifyCompanySession(req, companyId)) return res.status(401).json({ error: "Unauthorized for company context." });
 
-  const company = getCompanyById(companyId);
-  if (!company) return res.status(404).json({ error: "Company not found" });
+  if (companyId && verifyCompanySession(req, companyId)) {
+    const company = getCompanyById(companyId);
+    if (company) {
+      const companyRun = runEngine(companyId, sourceType, policySettings);
+      return res.json(getEnrichedSummary(companyRun.summary, companyId));
+    }
+  }
 
-  const companyRun = runEngine(companyId, sourceType, policySettings);
-  res.json(getEnrichedSummary(companyRun.summary, companyId));
+  // Fallback for demo preview & guest dashboard view
+  const { summary } = ensureRun();
+  res.json(getEnrichedSummary(summary, null));
 });
 
 // GET /api/incidents - Real incidents filtered by company & sourceType (Item 3: Passes policySettings!)
 router.get("/incidents", (req, res) => {
   const companyId = req.query.companyId;
   const sourceType = req.query.sourceType || "DEMO";
-  if (!companyId) return res.status(400).json({ error: "Missing companyId parameter" });
-  if (!verifyCompanySession(req, companyId)) return res.status(401).json({ error: "Unauthorized for company context." });
 
-  const company = getCompanyById(companyId);
-  if (!company) return res.status(404).json({ error: "Company not found" });
+  let incidents = [];
+  if (companyId && verifyCompanySession(req, companyId)) {
+    const companyRun = runEngine(companyId, sourceType, policySettings);
+    incidents = companyRun.incidents;
+  } else {
+    const run = ensureRun();
+    incidents = run.incidents;
+  }
 
-  const companyRun = runEngine(companyId, sourceType, policySettings);
-  let result = [...companyRun.incidents];
+  let result = [...incidents];
 
   if (req.query.severity) {
     result = result.filter((i) => i.severity.level === req.query.severity.toUpperCase());
