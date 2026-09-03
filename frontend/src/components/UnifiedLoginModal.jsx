@@ -40,17 +40,17 @@ export default function UnifiedLoginModal({ isOpen, onClose, onLoginSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, role }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (data.ok && data.token) {
+      if (res.ok && data && data.ok && data.token) {
         onLoginSuccess(data);
         setPassword('');
         onClose();
       } else {
-        setError(data.error || 'Authentication failed.');
+        setError((data && data.error) || `Authentication failed (HTTP ${res.status}). Please check your credentials or server health.`);
       }
     } catch (err) {
-      setError('Connection failed. Please try again.');
+      setError('Connection failed. Please check your network connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -68,15 +68,15 @@ export default function UnifiedLoginModal({ isOpen, onClose, onLoginSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: companyName, email, username, password }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (data.ok) {
+      if (res.ok && data && data.ok) {
         setSuccessMsg('Account created successfully! Logging you in...');
         setTimeout(() => {
           handleLoginSubmit(e);
         }, 1200);
       } else {
-        setError(data.error || 'Signup failed.');
+        setError((data && data.error) || 'Signup failed.');
       }
     } catch (err) {
       setError('Signup failed. Please try again.');
@@ -97,14 +97,14 @@ export default function UnifiedLoginModal({ isOpen, onClose, onLoginSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: username || email }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (data.ok && data.resetCode) {
+      if (res.ok && data && data.ok && data.resetCode) {
         setGeneratedCode(data.resetCode);
         setResetCode(data.resetCode);
         setViewMode('RESET');
       } else {
-        setError(data.error || 'Account not found.');
+        setError((data && data.error) || 'Account not found.');
       }
     } catch (err) {
       setError('Request failed. Please try again.');
@@ -125,14 +125,14 @@ export default function UnifiedLoginModal({ isOpen, onClose, onLoginSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: resetCode, newPassword }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (data.ok) {
+      if (res.ok && data && data.ok) {
         setSuccessMsg('Password updated successfully! You can now log in.');
         setViewMode('LOGIN');
         setPassword(newPassword);
       } else {
-        setError(data.error || 'Password reset failed.');
+        setError((data && data.error) || 'Password reset failed.');
       }
     } catch (err) {
       setError('Reset failed. Please try again.');

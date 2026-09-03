@@ -17,8 +17,12 @@ function initAndMigrateDb() {
 
   const db = new Database(sqliteDbPath);
 
-  // Enable WAL mode for high performance
-  db.pragma("journal_mode = WAL");
+  // Enable DELETE journal mode for Vercel serverless /tmp or WAL for local high performance
+  if (isVercel) {
+    db.pragma("journal_mode = DELETE");
+  } else {
+    db.pragma("journal_mode = WAL");
+  }
 
   // Create relational SQLite tables
   db.exec(`
