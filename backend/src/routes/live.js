@@ -41,54 +41,72 @@ router.post("/reset", (req, res) => {
   res.json({ ok: true, message: "Live detection store reset successfully" });
 });
 
-// POST /api/live/create-order - Create real Razorpay test order via API keys (Item 4: companyId attached!)
+// POST /api/live/create-order - Create real Razorpay test order via API keys (with simulation fallback)
 router.post("/create-order", async (req, res) => {
   const companyId = req.body.companyId || "COMP-FLIPKART";
   const razorpay = getRazorpayClient(companyId);
-  if (!razorpay) {
-    return res.status(400).json({
-      error: "Razorpay API keys not configured",
-      message: "Please configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend/.env or connect your company in the UI.",
-    });
-  }
-
   const conn = getConnection(companyId);
-  const activeKeyId = conn?.razorpayKeyId || process.env.RAZORPAY_KEY_ID;
+
+  const activeKeyId = (conn && conn.razorpayKeyId && !conn.razorpayKeyId.includes("flipkart") && !conn.razorpayKeyId.includes("myntra"))
+    ? conn.razorpayKeyId
+    : (process.env.RAZORPAY_KEY_ID || "rzp_test_TXcdzwvOAnj7lr");
 
   const amount = req.body.amount || 50000; // in paise (e.g. ₹500.00)
   const currency = "INR";
   const receipt = `rcpt_${Date.now().toString().slice(-6)}`;
 
-  try {
-    const order = await razorpay.orders.create({ amount, currency, receipt, payment_capture: 1 });
-    
-    // Item 4: Attach companyId to live order record
-    addLiveOrder({
-      ...order,
-      companyId,
-    });
+  let order;
+  let isSimulated = false;
 
-    addLiveEvent({
-      companyId,
-      event: "order.created",
-      orderId: order.id,
-      amount: amount / 100,
-      details: `Razorpay Order ${order.id} created for ₹${amount / 100} for ${companyId}`,
-    });
-
-    res.json({
-      ok: true,
-      companyId,
-      key_id: activeKeyId,
-      order,
-    });
-  } catch (err) {
-    console.error("Razorpay Order Creation Error:", err);
-    res.status(500).json({
-      error: "Razorpay API Error",
-      message: err.description || err.message || "Failed to create order via Razorpay API",
-    });
+  if (razorpay) {
+    try {
+      order = await razorpay.orders.create({ amount, currency, receipt, payment_capture: 1 });
+    } catch (err) {
+      console.warn("Razorpay API order creation failed, falling back to simulated order:", err.message || err);
+      isSimulated = true;
+    }
+  } else {
+    isSimulated = true;
   }
+
+  if (isSimulated || !order) {
+    const simOrderId = `order_sim_${Date.now().toString().slice(-8)}`;
+    order = {
+      id: simOrderId,
+      entity: "order",
+      amount,
+      amount_paid: 0,
+      amount_due: amount,
+      currency,
+      receipt,
+      status: "created",
+      attempts: 0,
+      notes: [],
+      created_at: Math.floor(Date.now() / 1000),
+    };
+  }
+
+  // Attach companyId to live order record
+  addLiveOrder({
+    ...order,
+    companyId,
+  });
+
+  addLiveEvent({
+    companyId,
+    event: "order.created",
+    orderId: order.id,
+    amount: amount / 100,
+    details: `Razorpay Order ${order.id} created for ₹${amount / 100} for ${companyId} ${isSimulated ? '(Simulated Mode)' : '(Live Razorpay)'}`,
+  });
+
+  res.json({
+    ok: true,
+    companyId,
+    key_id: activeKeyId,
+    isSimulated,
+    order,
+  });
 });
 
 // POST /api/live/verify-payment - Backend HMAC-SHA256 Payment Checkout Verification
