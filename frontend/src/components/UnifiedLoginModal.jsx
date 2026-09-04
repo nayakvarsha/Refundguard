@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Building2, ShieldCheck, User, KeyRound, ArrowRight, CheckCircle2, Key } from 'lucide-react';
 
-export default function UnifiedLoginModal({ isOpen, onClose, onLoginSuccess }) {
+export default function UnifiedLoginModal({ isOpen = true, onClose, onLoginSuccess }) {
   const [role, setRole] = useState('COMPANY'); // 'COMPANY' | 'ADMIN'
   const [viewMode, setViewMode] = useState('LOGIN'); // 'LOGIN' | 'SIGNUP' | 'FORGOT' | 'RESET'
 
@@ -20,7 +20,7 @@ export default function UnifiedLoginModal({ isOpen, onClose, onLoginSuccess }) {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (!isOpen) return null;
+  if (isOpen === false) return null;
 
   const resetFormState = () => {
     setError('');

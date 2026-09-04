@@ -341,6 +341,7 @@ export default function App() {
       {/* Unified Login Modal */}
       {isUnifiedLoginOpen && (
         <UnifiedLoginModal
+          isOpen={isUnifiedLoginOpen}
           onClose={() => setIsUnifiedLoginOpen(false)}
           onLoginSuccess={handleUnifiedLoginSuccess}
         />
