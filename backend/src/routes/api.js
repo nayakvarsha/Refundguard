@@ -638,16 +638,13 @@ router.get("/admin/overview", (req, res) => {
   });
 });
 
-// GET /api/health - health check
+// GET /api/health - Lightweight health check independent of database queries (Directive 3)
 router.get("/health", (req, res) => {
-  const { summary } = ensureRun();
-  res.json({
+  res.status(200).json({
     status: "ok",
     service: "RefundGuard Engine API",
     mode: "MULTI_TENANT_CUSTOMER_SELF_SERVE",
     store: "Native SQLite Database (better-sqlite3)",
-    recordsAnalyzed: summary.recordsAnalyzed,
-    incidentsFound: summary.incidentsFound,
     backendConnected: true,
     timestamp: new Date().toISOString(),
   });
@@ -1204,11 +1201,13 @@ router.post("/webhooks/company/:companyId", (req, res) => {
 router.get("/reconciliation", (req, res) => {
   const companyId = req.query.companyId;
   const sourceType = req.query.sourceType || "DEMO";
-  if (companyId && !verifyCompanySession(req, companyId)) {
-    return res.status(401).json({ error: "Unauthorized for company context." });
+
+  let targetCompanyId = null;
+  if (companyId && verifyCompanySession(req, companyId)) {
+    targetCompanyId = companyId;
   }
 
-  const data = loadData(companyId, sourceType);
+  const data = loadData(targetCompanyId, sourceType);
   const sampleOrders = data.orders.slice(0, 50).map((ord) => {
     const pay = data.paymentsByOrderId.get(ord.orderId);
     const rfdList = data.refunds.filter((r) => r.orderId === ord.orderId);

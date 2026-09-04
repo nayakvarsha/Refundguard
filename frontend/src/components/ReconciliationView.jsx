@@ -11,10 +11,12 @@ export default function ReconciliationView({ currentCompany, sessionToken, onOpe
   const [selectedTx, setSelectedTx] = useState(null);
 
   const loadReconciliation = () => {
-    if (!currentCompany) return;
     setLoading(true);
-    fetch(`/api/reconciliation?companyId=${currentCompany.id}&sourceType=${sourceType}`, {
-      headers: sessionToken ? { 'x-session-token': sessionToken } : {},
+    const targetCompId = currentCompany?.id || 'COMP-FLIPKART';
+    const activeToken = sessionToken || sessionStorage.getItem('refundguard_session_token');
+
+    fetch(`/api/reconciliation?companyId=${targetCompId}&sourceType=${sourceType}`, {
+      headers: activeToken ? { 'x-session-token': activeToken } : {},
     })
       .then((res) => res.json())
       .then((data) => {
@@ -35,7 +37,7 @@ export default function ReconciliationView({ currentCompany, sessionToken, onOpe
 
   useEffect(() => {
     loadReconciliation();
-  }, [currentCompany?.id, sourceType]);
+  }, [currentCompany?.id, sourceType, sessionToken]);
 
   const formatRupees = (amt) => {
     if (!amt) return '₹0';
