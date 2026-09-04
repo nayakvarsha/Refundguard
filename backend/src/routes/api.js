@@ -13,7 +13,7 @@ const { createMockRazorpayEvent } = require("../services/razorpayService");
 const { validateWebhookSignature, translateWebhookEvent } = require("../connectors/razorpayConnector");
 const { getLiveStore, addLiveOrder, addLiveRefund, addLiveIncident, addLiveEvent } = require("../engine/liveStore");
 const { getRazorpayClient } = require("../services/razorpayClient");
-const { loadData } = require("../engine/loadData");
+const { loadData, saveUploadData } = require("../engine/loadData");
 const {
   getCompanies,
   getCompanyById,
@@ -569,9 +569,7 @@ function handleUploadData(req, res, targetCompanyId) {
   });
 
   const uploadPayload = { orders, payments, refunds, ledger, uploadedAt: new Date().toISOString() };
-  try {
-    fs.writeFileSync(path.join(uploadsDir, `${companyId}.json`), JSON.stringify(uploadPayload, null, 2));
-  } catch (e) {}
+  saveUploadData(companyId, uploadPayload);
 
   addAuditLog({
     eventType: "CUSTOM_DATA_UPLOADED",
