@@ -107,9 +107,15 @@ function createInMemoryDbFallback() {
             return users.get("admin") || null;
           }
           if (lowerSql.includes("from users where lower(username) = ? or lower(email) = ?")) {
-            const p = (params[0] || "").toLowerCase();
+            const p1 = (params[0] || "").trim().toLowerCase();
+            const p2 = (params[1] || params[0] || "").trim().toLowerCase();
             for (const u of users.values()) {
-              if (u.username.toLowerCase() === p || u.email.toLowerCase() === p) return u;
+              if (
+                u.username.trim().toLowerCase() === p1 ||
+                u.email.trim().toLowerCase() === p1 ||
+                u.username.trim().toLowerCase() === p2 ||
+                u.email.trim().toLowerCase() === p2
+              ) return u;
             }
             return null;
           }
@@ -140,7 +146,8 @@ function createInMemoryDbFallback() {
           if (lowerSql.includes("insert into users")) {
             const [id, username, email, passwordHash, role, companyId, lastLoginAt] = params;
             const u = { id, username, email, passwordHash, role, companyId, lastLoginAt, failedAttempts: 0, lockedUntil: null };
-            users.set(username.toLowerCase(), u);
+            users.set(username.trim().toLowerCase(), u);
+            users.set(email.trim().toLowerCase(), u);
           } else if (lowerSql.includes("update users set username = ?, passwordhash = ? where role = 'admin'")) {
             const admin = users.get("admin");
             if (admin) {

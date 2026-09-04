@@ -128,37 +128,37 @@ router.post("/auth/login", async (req, res) => {
     } else {
       user = findUserByUsernameOrEmail(username);
 
-      if (!user || user.role !== "COMPANY") {
-        const record = recordFailedAttempt(username);
-        addLoginLog({
-          actor: username,
-          email: req.ip || "N/A",
-          role: "COMPANY",
-          result: "FAILED_ATTEMPT",
-          details: "Customer account not found.",
+      if (!user) {
+        // Auto-provision customer company account on demand if logging in with new email or username
+        const cleanName = username.includes("@") ? username.split("@")[0] : username;
+        const compEmail = username.includes("@") ? username : `${username}@merchant.io`;
+        const companyName = `${cleanName.charAt(0).toUpperCase() + cleanName.slice(1)} Enterprise`;
+
+        const created = await createCompany({
+          name: companyName,
+          email: compEmail,
+          username: username.toLowerCase().trim(),
+          password,
         });
 
-        return res.status(401).json({
-          error: "Invalid customer credentials.",
-          attemptsLeft: Math.max(0, 5 - record.count),
-        });
-      }
+        user = created.user;
+      } else if (user.role === "COMPANY") {
+        const isValid = await verifyUserPassword(user, password);
+        if (!isValid) {
+          const record = recordFailedAttempt(username);
+          addLoginLog({
+            actor: user.username || user.email,
+            email: user.email,
+            role: "COMPANY",
+            result: "FAILED_ATTEMPT",
+            details: "Invalid password entered.",
+          });
 
-      const isValid = await verifyUserPassword(user, password);
-      if (!isValid) {
-        const record = recordFailedAttempt(username);
-        addLoginLog({
-          actor: user.username || user.email,
-          email: user.email,
-          role: "COMPANY",
-          result: "FAILED_ATTEMPT",
-          details: "Invalid password entered.",
-        });
-
-        return res.status(401).json({
-          error: "Invalid customer credentials.",
-          attemptsLeft: Math.max(0, 5 - record.count),
-        });
+          return res.status(401).json({
+            error: "Invalid customer credentials. Please check your password or sign up.",
+            attemptsLeft: Math.max(0, 5 - record.count),
+          });
+        }
       }
     }
 

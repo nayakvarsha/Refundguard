@@ -29,7 +29,7 @@ export default function ImportDataModal({
     setError('');
     setSuccess('');
 
-    const isJson = selected.name.endsWith('.json');
+    const isJson = selected.name.toLowerCase().endsWith('.json');
     setFileType(isJson ? 'JSON' : 'CSV');
 
     const reader = new FileReader();
@@ -40,27 +40,50 @@ export default function ImportDataModal({
   };
 
   const parseCsvToRecords = (csvText) => {
-    const lines = csvText.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-    if (lines.length <= 1) return [];
+    const rawLines = csvText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+    if (rawLines.length <= 1) return [];
 
-    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+    // Determine delimiter (, or ; or tab)
+    const firstLine = rawLines[0];
+    let delimiter = ',';
+    if (firstLine.includes('\t')) delimiter = '\t';
+    else if (firstLine.includes(';') && !firstLine.includes(',')) delimiter = ';';
+
+    const parseLine = (line) => {
+      return line.split(delimiter).map((col) => col.replace(/^["']|["']$/g, '').trim());
+    };
+
+    const headers = parseLine(rawLines[0]).map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
     const records = [];
 
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map((v) => v.trim());
-      if (values.length < headers.length) continue;
+    for (let i = 1; i < rawLines.length; i++) {
+      const values = parseLine(rawLines[i]);
+      if (values.length === 0 || (values.length === 1 && !values[0])) continue;
 
       const obj = {};
       headers.forEach((h, idx) => {
-        obj[h] = values[idx];
+        obj[h] = values[idx] || '';
       });
 
+      const getVal = (...keys) => {
+        for (const k of keys) {
+          const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (obj[cleanK] !== undefined && obj[cleanK] !== '') return obj[cleanK];
+        }
+        return '';
+      };
+
+      const orderId = getVal('order_id', 'orderid', 'order_number', 'order', 'id') || `ORD-${String(i).padStart(6, '0')}`;
+      const paymentId = getVal('payment_id', 'paymentid', 'transaction_id', 'txnid', 'payment') || `PAY-${String(i).padStart(6, '0')}`;
+      const orderAmount = Number(getVal('order_amount', 'orderamount', 'amount', 'total', 'captured_amount', 'captured') || 0);
+      const refundAmount = Number(getVal('refund_amount', 'refundamount', 'refund', 'refunds') || 0);
+
       records.push({
-        order_id: obj.order_id || obj.orderid || obj.order_number,
-        payment_id: obj.payment_id || obj.paymentid || obj.transaction_id,
-        order_amount: Number(obj.order_amount || obj.orderamount || obj.amount || 0),
-        captured_amount: Number(obj.captured_amount || obj.capturedamount || obj.order_amount || 0),
-        refund_amount: Number(obj.refund_amount || obj.refundamount || obj.refund || 0),
+        order_id: orderId,
+        payment_id: paymentId,
+        order_amount: orderAmount,
+        captured_amount: orderAmount,
+        refund_amount: refundAmount,
       });
     }
 
@@ -80,16 +103,18 @@ export default function ImportDataModal({
     let records = [];
     try {
       if (fileType === 'JSON') {
-        records = JSON.parse(rawContent);
-        if (!Array.isArray(records)) {
-          records = records.records || records.data || [];
+        const parsed = JSON.parse(rawContent);
+        if (Array.isArray(parsed)) {
+          records = parsed;
+        } else if (parsed.records || parsed.data || parsed.orders) {
+          records = parsed.records || parsed.data || parsed.orders || [];
         }
       } else {
         records = parseCsvToRecords(rawContent);
       }
 
       if (records.length === 0) {
-        setError('No valid transaction records found in file.');
+        setError('No valid transaction records found in file. Please ensure your CSV has headers like order_id, amount, refund_amount.');
         setLoading(false);
         return;
       }
@@ -155,7 +180,7 @@ export default function ImportDataModal({
           <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:border-blue-400 bg-slate-50/50 transition relative">
             <input
               type="file"
-              accept=".csv,.json"
+              accept=".csv,.json,text/csv,application/json"
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
@@ -168,7 +193,7 @@ export default function ImportDataModal({
             ) : (
               <div>
                 <span className="font-extrabold text-xs text-slate-700 block">Click or drag CSV / JSON file here</span>
-                <span className="text-[10px] text-slate-400 font-medium">Expected format: order_id, payment_id, order_amount, refund_amount</span>
+                <span className="text-[10px] text-slate-400 font-medium">Supports CSV formats with order_id, order_amount, refund_amount</span>
               </div>
             )}
           </div>
