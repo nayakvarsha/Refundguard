@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Download, Lock } from 'lucide-react';
+import { RefreshCw, Download, Lock, User, LogOut } from 'lucide-react';
 
 function CustomRefundGuardLogo({ className = "w-6 h-6" }) {
   return (
@@ -12,7 +12,7 @@ function CustomRefundGuardLogo({ className = "w-6 h-6" }) {
         strokeLinejoin="round"
       />
       <path
-        d="M9.5 10C9.5 8.6 10.6 7.5 12 7.5C13.4 7.5 14.5 8.6 14.5 10C14.5 11.2 13.7 12.1 12.6 12.4L9 13.5H15"
+        d="M9.5 10C9.5 8.6 10.6 7.5 12 7.5C13.4 7.5 14.5 8.6 12.6 12.4L9 13.5H15"
         stroke="white"
         strokeWidth="1.8"
         strokeLinecap="round"
@@ -39,8 +39,11 @@ export default function Navbar({
   activeTab,
   setActiveTab,
   userRole,
+  currentUser,
+  sessionToken,
   currentCompany,
   onOpenUnifiedLoginModal,
+  onLogout,
   onRefreshData,
   isRefreshing
 }) {
@@ -104,18 +107,34 @@ export default function Navbar({
           })}
         </nav>
 
-        {/* Right: Action Buttons in exact requested order: Login -> Refresh -> Download CSV */}
+        {/* Right: Action Buttons in exact requested order: User/Login -> Refresh -> Download CSV */}
         <div className="flex items-center space-x-2">
           
-          {/* 1. Log In Button (Restyled to match Active Blue Tab!) */}
-          <button
-            onClick={onOpenUnifiedLoginModal}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold transition flex items-center space-x-1.5 shadow-md shadow-blue-600/30 cursor-pointer"
-            title="Log in or switch account"
-          >
-            <Lock className="w-3.5 h-3.5 text-white" />
-            <span>Log In</span>
-          </button>
+          {/* 1. Logged-in User profile badge or Guest Log In Button */}
+          {sessionToken || currentUser ? (
+            <div className="flex items-center space-x-2 bg-blue-50/80 border border-blue-200/80 px-3 py-1.5 rounded-xl">
+              <User className="w-3.5 h-3.5 text-blue-600" />
+              <span className="text-xs font-bold text-blue-950">
+                {currentUser?.username || (isAdmin ? 'Admin' : 'Logged In')}
+              </span>
+              <button
+                onClick={onLogout}
+                className="ml-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                title="Log Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenUnifiedLoginModal}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold transition flex items-center space-x-1.5 shadow-md shadow-blue-600/30 cursor-pointer"
+              title="Log in or switch account"
+            >
+              <Lock className="w-3.5 h-3.5 text-white" />
+              <span>Log In</span>
+            </button>
+          )}
 
           {/* 2. Refresh Button */}
           <button

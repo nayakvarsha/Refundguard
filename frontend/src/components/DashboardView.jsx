@@ -18,8 +18,15 @@ export default function DashboardView({
 }) {
   if (!summary) {
     return (
-      <div className="p-12 text-center text-slate-500 font-mono text-sm">
-        Loading summary metrics...
+      <div className="p-16 text-center flex flex-col items-center justify-center space-y-4 bg-white rounded-3xl border border-slate-200/80 shadow-sm my-6">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-600 font-semibold text-sm">Loading summary metrics...</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-blue-600/20"
+        >
+          Reload Dashboard
+        </button>
       </div>
     );
   }
