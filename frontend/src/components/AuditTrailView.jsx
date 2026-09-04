@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { History, RefreshCw } from 'lucide-react';
 import { fetchAuditLogs } from '../api/client';
 
-export default function AuditTrailView() {
+export default function AuditTrailView({ currentCompany, sessionToken }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadLogs = () => {
     setLoading(true);
-    fetchAuditLogs(100)
+    const compId = currentCompany?.id || 'COMP-FLIPKART';
+    fetchAuditLogs(100, compId)
       .then((data) => {
         setLogs(data.logs || []);
         setLoading(false);
@@ -21,7 +22,7 @@ export default function AuditTrailView() {
 
   useEffect(() => {
     loadLogs();
-  }, []);
+  }, [currentCompany?.id, sessionToken]);
 
   return (
     <div className="space-y-6">

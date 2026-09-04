@@ -999,6 +999,25 @@ router.post("/simulate", (req, res) => {
   });
 });
 
+// GET /api/audit-logs - Complete Audit Trail feed
+router.get("/audit-logs", (req, res) => {
+  const limit = parseInt(req.query.limit, 10) || 100;
+  const companyId = req.query.companyId;
+  const logs = getAuditLogs(limit * 2);
+
+  let result = logs;
+  if (companyId) {
+    result = logs.filter(
+      (l) => l.actor === companyId || (l.details && l.details.includes(companyId)) || l.orderId === "SYSTEM"
+    );
+  }
+
+  res.json({
+    total: result.length,
+    logs: result.slice(0, limit),
+  });
+});
+
 // Run ALL SIX invariant checks against liveStore
 function processWebhookPayloadIntoLiveStore(companyId, payload) {
   const event = translateWebhookEvent(payload);

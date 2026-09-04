@@ -63,13 +63,14 @@ export async function fetchIncidentGraph(id) {
   return res.json();
 }
 
-export async function fetchAuditLogs(limit = 100) {
+export async function fetchAuditLogs(limit = 100, companyId = null) {
   const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
   const headers = activeToken ? {
     'x-session-token': activeToken,
     'Authorization': `Bearer ${activeToken}`
   } : {};
-  const res = await fetch(`${BASE_URL}/audit-logs?limit=${limit}`, { headers });
+  const url = companyId ? `${BASE_URL}/audit-logs?limit=${limit}&companyId=${companyId}` : `${BASE_URL}/audit-logs?limit=${limit}`;
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error('Failed to fetch audit logs');
   return res.json();
 }
