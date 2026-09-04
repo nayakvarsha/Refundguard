@@ -68,15 +68,17 @@ export default function App() {
   };
 
   // Initial load & health polling filtered by current company
-  const loadData = async (comp = currentCompany) => {
+  const loadData = async (comp = currentCompany, overrideToken = null) => {
     setIsRefreshing(true);
     try {
       const health = await fetchHealth();
       setIsConnected(Boolean(health.backendConnected));
 
       const targetCompId = comp?.id || 'COMP-FLIPKART';
+      const activeToken = overrideToken || sessionToken || sessionStorage.getItem('refundguard_session_token');
+
       const sumRes = await fetch(`/api/summary?companyId=${targetCompId}`, {
-        headers: sessionToken ? { 'x-session-token': sessionToken } : {},
+        headers: activeToken ? { 'x-session-token': activeToken } : {},
       });
       const sumData = await sumRes.json();
 
@@ -115,8 +117,8 @@ export default function App() {
   }, [currentCompany?.id, sessionToken]);
 
   const handleSelectCompany = (comp) => {
-    sessionStorage.setItem('refundguard_company', JSON.stringify(comp));
     setCurrentCompany(comp);
+    sessionStorage.setItem('refundguard_company', JSON.stringify(comp));
     loadData(comp);
   };
 
@@ -135,7 +137,7 @@ export default function App() {
     } else if (company) {
       sessionStorage.setItem('refundguard_company', JSON.stringify(company));
       setCurrentCompany(company);
-      loadData(company);
+      loadData(company, token);
       setActiveTab('dashboard');
     }
   };
