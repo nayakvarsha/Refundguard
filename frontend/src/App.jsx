@@ -350,11 +350,13 @@ export default function App() {
       {/* Razorpay Key Settings Modal */}
       {isConnectionModalOpen && (
         <CompanyConnectionModal
+          isOpen={isConnectionModalOpen}
           company={connectionModalTarget || currentCompany || { id: 'COMP-FLIPKART', name: 'Flipkart E-Commerce' }}
           onClose={() => {
             setIsConnectionModalOpen(false);
             setConnectionModalTarget(null);
           }}
+          onSaveConnection={handleSaveConnection}
           onSave={handleSaveConnection}
         />
       )}
@@ -362,9 +364,12 @@ export default function App() {
       {/* Custom Transaction Import CSV/JSON Modal */}
       {isImportModalOpen && (
         <ImportDataModal
+          isOpen={isImportModalOpen}
+          company={currentCompany || { id: 'COMP-FLIPKART', name: 'Flipkart E-Commerce' }}
           currentCompany={currentCompany || { id: 'COMP-FLIPKART', name: 'Flipkart E-Commerce' }}
           sessionToken={sessionToken}
           onClose={() => setIsImportModalOpen(false)}
+          onUploadSuccess={() => loadData(currentCompany)}
           onImportSuccess={() => loadData(currentCompany)}
         />
       )}
