@@ -13,11 +13,13 @@ import {
 import EvidenceGraph from './EvidenceGraph';
 import { fetchIncidentDetail, fetchIncidentGraph } from '../api/client';
 
-export default function IncidentDetailModal({ incidentId, onClose }) {
+export default function IncidentDetailModal({ incidentId, company, currentCompany, onClose }) {
   const [incident, setIncident] = useState(null);
   const [graphData, setGraphData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | evidence | ai | simulation | webhook
+
+  const compId = company?.id || currentCompany?.id || 'COMP-FLIPKART';
 
   useEffect(() => {
     if (!incidentId) return;
@@ -25,7 +27,7 @@ export default function IncidentDetailModal({ incidentId, onClose }) {
     let isMounted = true;
     setLoading(true);
 
-    Promise.all([fetchIncidentDetail(incidentId), fetchIncidentGraph(incidentId)])
+    Promise.all([fetchIncidentDetail(incidentId, compId), fetchIncidentGraph(incidentId, compId)])
       .then(([detail, graph]) => {
         if (isMounted) {
           setIncident(detail);
@@ -41,7 +43,7 @@ export default function IncidentDetailModal({ incidentId, onClose }) {
     return () => {
       isMounted = false;
     };
-  }, [incidentId]);
+  }, [incidentId, compId]);
 
   if (!incidentId) return null;
 

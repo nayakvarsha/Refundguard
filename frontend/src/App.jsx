@@ -323,6 +323,7 @@ export default function App() {
       {selectedIncidentId && (
         <IncidentDetailModal
           incidentId={selectedIncidentId}
+          currentCompany={currentCompany}
           sessionToken={sessionToken}
           onClose={() => setSelectedIncidentId(null)}
         />

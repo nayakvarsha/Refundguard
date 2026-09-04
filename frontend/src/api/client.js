@@ -41,24 +41,26 @@ export async function fetchIncidents({ companyId = '', severity = '', type = '',
   return res.json();
 }
 
-export async function fetchIncidentDetail(id) {
+export async function fetchIncidentDetail(id, companyId = null) {
   const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
   const headers = activeToken ? {
     'x-session-token': activeToken,
     'Authorization': `Bearer ${activeToken}`
   } : {};
-  const res = await fetch(`${BASE_URL}/incidents/${id}`, { headers });
+  const query = companyId ? `?companyId=${encodeURIComponent(companyId)}` : '';
+  const res = await fetch(`${BASE_URL}/incidents/${id}${query}`, { headers });
   if (!res.ok) throw new Error('Failed to fetch incident details');
   return res.json();
 }
 
-export async function fetchIncidentGraph(id) {
+export async function fetchIncidentGraph(id, companyId = null) {
   const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
   const headers = activeToken ? {
     'x-session-token': activeToken,
     'Authorization': `Bearer ${activeToken}`
   } : {};
-  const res = await fetch(`${BASE_URL}/incidents/${id}/graph`, { headers });
+  const query = companyId ? `?companyId=${encodeURIComponent(companyId)}` : '';
+  const res = await fetch(`${BASE_URL}/incidents/${id}/graph${query}`, { headers });
   if (!res.ok) throw new Error('Failed to fetch incident evidence graph');
   return res.json();
 }
