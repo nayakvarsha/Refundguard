@@ -61,7 +61,9 @@ export default function Navbar({
 
   const handleDownloadReport = () => {
     const compId = currentCompany?.id || 'COMP-FLIPKART';
-    window.open(`/api/incidents/export/csv?companyId=${compId}`, '_blank');
+    const activeToken = sessionToken || sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+    const tokenParam = activeToken ? `&token=${encodeURIComponent(activeToken)}` : '';
+    window.open(`/api/incidents/export/csv?companyId=${encodeURIComponent(compId)}${tokenParam}`, '_blank');
   };
 
   return (
