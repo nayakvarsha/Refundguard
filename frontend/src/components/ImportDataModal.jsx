@@ -121,16 +121,26 @@ export default function ImportDataModal({
 
       const activeToken = sessionToken || sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
 
-      const res = await fetch(`/api/companies/${targetCompany.id}/upload-data`, {
+      const res = await fetch('/api/upload-data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(activeToken ? { 'x-session-token': activeToken, 'Authorization': `Bearer ${activeToken}` } : {}),
         },
-        body: JSON.stringify({ records }),
+        body: JSON.stringify({
+          companyId: targetCompany?.id || targetCompany?.companyId,
+          records,
+        }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data;
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Server returned status ${res.status}: ${text.slice(0, 120)}`);
+      }
 
       if (data.ok) {
         setSuccess(`Successfully imported ${data.recordsImported} records! RefundGuard detected ${data.incidentsFound} incidents.`);

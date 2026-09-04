@@ -99,3 +99,17 @@ export async function triggerLiveSimulation() {
   if (!res.ok) throw new Error('Failed to run live simulation');
   return res.json();
 }
+
+export async function triggerEngineRun() {
+  const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(activeToken ? { 'x-session-token': activeToken, 'Authorization': `Bearer ${activeToken}` } : {})
+  };
+  const res = await fetch(`${BASE_URL}/run`, {
+    method: 'POST',
+    headers,
+  });
+  if (!res.ok) throw new Error('Failed to trigger engine run');
+  return res.json();
+}
