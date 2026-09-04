@@ -13,12 +13,19 @@ app.use(cors({
   credentials: true,
 }));
 
-// Express json parser with rawBody preservation for Razorpay X-Razorpay-Signature HMAC verification
+// Express json & urlencoded parser with 50mb limit and rawBody preservation for Razorpay X-Razorpay-Signature HMAC verification
 app.use(
   express.json({
+    limit: "50mb",
     verify: (req, res, buf) => {
       req.rawBody = buf.toString();
     },
+  })
+);
+app.use(
+  express.urlencoded({
+    limit: "50mb",
+    extended: true,
   })
 );
 
@@ -34,6 +41,18 @@ app.use("/", apiRouter);
 // Serve built React frontend static files from frontend/dist
 const frontendDist = path.join(__dirname, "..", "..", "frontend", "dist");
 app.use(express.static(frontendDist));
+
+// Express Error Handling Middleware to ensure API responses are always valid JSON
+app.use((err, req, res, next) => {
+  if (err) {
+    console.error("Express Error:", err);
+    return res.status(err.status || 500).json({
+      ok: false,
+      error: err.message || "An unexpected error occurred on the server.",
+    });
+  }
+  next();
+});
 
 // Fallback to React index.html for client-side routing
 app.get("*", (req, res) => {
