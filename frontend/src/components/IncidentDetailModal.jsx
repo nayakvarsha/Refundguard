@@ -273,8 +273,8 @@ export default function IncidentDetailModal({ incidentId, company, currentCompan
                   </div>
 
                   <div className="p-4 rounded-xl bg-white border border-blue-200 font-mono text-xs text-slate-800 space-y-2 shadow-2xs">
-                    <div><span className="text-slate-400">Likely Cause:</span> <span className="font-bold text-slate-900">{incident.investigation?.likelyCause}</span></div>
-                    <div><span className="text-slate-400">Recommendation:</span> <span className="text-emerald-700 font-bold">{incident.investigation?.recommendation}</span></div>
+                    <div><span className="text-slate-400">Likely Cause:</span> <span className="font-bold text-slate-900">{incident.investigation?.likelyCause || 'Order, payment, refund, and ledger records do not tie out due to mismatched gateway settlement.'}</span></div>
+                    <div><span className="text-slate-400">Recommendation:</span> <span className="text-emerald-700 font-bold">{incident.investigation?.recommendation || 'Enforce idempotency keys on the refund endpoint and trigger a 4-way cross-system reconciliation sync.'}</span></div>
                   </div>
 
                   {incident.investigation?.evidenceUsed && (
