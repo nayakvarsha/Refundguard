@@ -2,27 +2,44 @@ import React, { useState, useEffect } from 'react';
 import { Search, ArrowUpDown, Eye } from 'lucide-react';
 import { fetchIncidents } from '../api/client';
 
-export default function IncidentsView({ initialSeverity = '', onSelectIncident }) {
+export default function IncidentsView({
+  currentCompany,
+  sessionToken,
+  initialSeverityFilter = '',
+  initialSeverity = '',
+  onSelectIncident,
+  onClearInitialSeverity
+}) {
   const [incidents, setIncidents] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // Determine initial severity cleanly
+  const activeInitialSeverity = (initialSeverityFilter || initialSeverity || '').trim();
+
   // Filter States
-  const [severityFilter, setSeverityFilter] = useState(initialSeverity);
+  const [severityFilter, setSeverityFilter] = useState(activeInitialSeverity);
   const [typeFilter, setTypeFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('desc'); // desc: highest exposure first
 
   useEffect(() => {
-    setSeverityFilter(initialSeverity);
-  }, [initialSeverity]);
+    const cleanSev = (initialSeverityFilter || initialSeverity || '').trim();
+    if (cleanSev) {
+      setSeverityFilter(cleanSev);
+    }
+  }, [initialSeverityFilter, initialSeverity]);
 
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
 
+    const compId = currentCompany?.id || 'COMP-FLIPKART';
+    const cleanSev = severityFilter && severityFilter !== 'undefined' ? severityFilter : '';
+
     fetchIncidents({
-      severity: severityFilter,
+      companyId: compId,
+      severity: cleanSev,
       type: typeFilter,
       search: searchTerm,
       limit: 100,
@@ -44,7 +61,7 @@ export default function IncidentsView({ initialSeverity = '', onSelectIncident }
     return () => {
       isMounted = false;
     };
-  }, [severityFilter, typeFilter, searchTerm, sortOrder]);
+  }, [currentCompany?.id, severityFilter, typeFilter, searchTerm, sortOrder, sessionToken]);
 
   const formatRupees = (amt) => {
     if (!amt) return '₹0';

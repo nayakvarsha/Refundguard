@@ -769,11 +769,13 @@ router.get("/incidents", (req, res) => {
 
   let result = [...incidents];
 
-  if (req.query.severity) {
-    result = result.filter((i) => i.severity.level === req.query.severity.toUpperCase());
+  if (req.query.severity && req.query.severity !== "undefined" && req.query.severity !== "null") {
+    const sev = req.query.severity.toUpperCase();
+    result = result.filter((i) => i.severity && i.severity.level === sev);
   }
-  if (req.query.type) {
-    result = result.filter((i) => i.types.includes(req.query.type.toUpperCase()));
+  if (req.query.type && req.query.type !== "undefined" && req.query.type !== "null") {
+    const typ = req.query.type.toUpperCase();
+    result = result.filter((i) => i.types && i.types.includes(typ));
   }
   if (req.query.search) {
     const q = req.query.search.toLowerCase();

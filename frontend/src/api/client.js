@@ -10,70 +10,91 @@ export async function fetchHealth() {
   return res.json();
 }
 
-export async function fetchSummary() {
-  const res = await fetch(`${BASE_URL}/summary`);
+export async function fetchSummary(companyId = null) {
+  const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+  const headers = activeToken ? {
+    'x-session-token': activeToken,
+    'Authorization': `Bearer ${activeToken}`
+  } : {};
+  const url = companyId ? `${BASE_URL}/summary?companyId=${companyId}` : `${BASE_URL}/summary`;
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error('Failed to fetch summary');
   return res.json();
 }
 
-export async function fetchIncidents({ severity = '', type = '', search = '', limit = 100 } = {}) {
+export async function fetchIncidents({ companyId = '', severity = '', type = '', search = '', limit = 100 } = {}) {
   const params = new URLSearchParams();
-  if (severity) params.append('severity', severity);
-  if (type) params.append('type', type);
-  if (search) params.append('search', search);
+  if (companyId) params.append('companyId', companyId);
+  if (severity && severity !== 'undefined' && severity !== 'null') params.append('severity', severity);
+  if (type && type !== 'undefined' && type !== 'null') params.append('type', type);
+  if (search && search !== 'undefined' && search !== 'null') params.append('search', search);
   if (limit) params.append('limit', limit);
 
-  const res = await fetch(`${BASE_URL}/incidents?${params.toString()}`);
+  const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+  const headers = activeToken ? {
+    'x-session-token': activeToken,
+    'Authorization': `Bearer ${activeToken}`
+  } : {};
+
+  const res = await fetch(`${BASE_URL}/incidents?${params.toString()}`, { headers });
   if (!res.ok) throw new Error('Failed to fetch incidents');
   return res.json();
 }
 
 export async function fetchIncidentDetail(id) {
-  const res = await fetch(`${BASE_URL}/incidents/${id}`);
+  const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+  const headers = activeToken ? {
+    'x-session-token': activeToken,
+    'Authorization': `Bearer ${activeToken}`
+  } : {};
+  const res = await fetch(`${BASE_URL}/incidents/${id}`, { headers });
   if (!res.ok) throw new Error('Failed to fetch incident details');
   return res.json();
 }
 
 export async function fetchIncidentGraph(id) {
-  const res = await fetch(`${BASE_URL}/incidents/${id}/graph`);
+  const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+  const headers = activeToken ? {
+    'x-session-token': activeToken,
+    'Authorization': `Bearer ${activeToken}`
+  } : {};
+  const res = await fetch(`${BASE_URL}/incidents/${id}/graph`, { headers });
   if (!res.ok) throw new Error('Failed to fetch incident evidence graph');
   return res.json();
 }
 
-export async function triggerLiveSimulation() {
-  const res = await fetch(`${BASE_URL}/simulate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) throw new Error('Failed to run live simulation');
-  return res.json();
-}
-
-export async function triggerEngineRun() {
-  const res = await fetch(`${BASE_URL}/run`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) throw new Error('Failed to run engine');
-  return res.json();
-}
-
 export async function fetchAuditLogs(limit = 100) {
-  const res = await fetch(`${BASE_URL}/audit?limit=${limit}`);
+  const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+  const headers = activeToken ? {
+    'x-session-token': activeToken,
+    'Authorization': `Bearer ${activeToken}`
+  } : {};
+  const res = await fetch(`${BASE_URL}/audit-logs?limit=${limit}`, { headers });
   if (!res.ok) throw new Error('Failed to fetch audit logs');
   return res.json();
 }
 
 export async function fetchBenchmark() {
-  const res = await fetch(`${BASE_URL}/benchmark`);
-  if (!res.ok) throw new Error('Failed to fetch benchmark');
+  const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+  const headers = activeToken ? {
+    'x-session-token': activeToken,
+    'Authorization': `Bearer ${activeToken}`
+  } : {};
+  const res = await fetch(`${BASE_URL}/benchmark`, { headers });
+  if (!res.ok) throw new Error('Failed to fetch benchmark evaluation');
   return res.json();
 }
 
-export async function triggerReset() {
-  const res = await fetch(`${BASE_URL}/reset`, {
+export async function triggerLiveSimulation() {
+  const activeToken = sessionStorage.getItem('refundguard_session_token') || localStorage.getItem('refundguard_session_token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(activeToken ? { 'x-session-token': activeToken, 'Authorization': `Bearer ${activeToken}` } : {})
+  };
+  const res = await fetch(`${BASE_URL}/simulate`, {
     method: 'POST',
+    headers,
   });
-  if (!res.ok) throw new Error('Failed to reset system');
+  if (!res.ok) throw new Error('Failed to run live simulation');
   return res.json();
 }
